@@ -219,10 +219,16 @@ repmgr_get_primary_node() {
     if [[ -f "$REPMGR_PRIMARY_ROLE_LOCK_FILE_NAME" ]]; then
         info "This node was acting as a primary before restart!"
 
-        if [[ -z "$upstream_host" ]] || [[ "${upstream_host}:${upstream_port}" = "${REPMGR_NODE_NETWORK_NAME}:${REPMGR_PORT_NUMBER}" ]]; then
-            info "Can not find new primary. Starting PostgreSQL normally..."
+        if [[ -z "$upstream_host" ]]; then
+            info "Can not find new primary, since this node was the primary before, we'll assume that role again..."
+            primary_host="$REPMGR_PRIMARY_HOST"
+            primary_port="$REPMGR_PRIMARY_PORT"
+        elif [[ "${upstream_host}:${upstream_port}" = "${REPMGR_NODE_NETWORK_NAME}:${REPMGR_PORT_NUMBER}" ]]; then
+            info "This node is the current primary, so we'll keep that role..."
+            primary_host="$REPMGR_PRIMARY_HOST"
+            primary_port="$REPMGR_PRIMARY_PORT"
         else
-            info "Current master is '${upstream_host}:${upstream_port}'. Cloning/rewinding it and acting as a standby node..."
+            info "Current primary is '${upstream_host}:${upstream_port}'. Cloning/rewinding it and acting as a standby node..."
             rm -f "$REPMGR_PRIMARY_ROLE_LOCK_FILE_NAME"
             export REPMGR_SWITCH_ROLE="yes"
             primary_host="$upstream_host"
